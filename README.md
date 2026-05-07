@@ -1,5 +1,7 @@
 # Burndown — Sprint Tracker
 
+**🚀 [Abrí la app acá → juansarg.github.io/pnt-burndown](https://juansarg.github.io/pnt-burndown)**
+
 Una herramienta minimalista para que equipos de desarrollo visualicen el progreso de sus sprints en tiempo real, sin depender de Jira ni de ninguna herramienta externa.
 
 > Sin backend. Sin cuenta. Sin configuración. Solo abrís, cargás tu sprint y empezás a trackear.
@@ -36,9 +38,28 @@ Al abrir la app por primera vez verás el formulario de configuración. Complet�
 | Campo | Descripción |
 |-------|-------------|
 | **Sprint name** | El nombre de tu sprint (ej: `Sprint 12 — Auth & Pagos`) |
+| **Total story points** | La suma de todos los puntos del sprint |
+
+#### Modo de duración: **Dates** vs **Duration**
+
+El formulario tiene un toggle para elegir cómo definir la duración del sprint:
+
+**Dates** — ingresás fecha de inicio y fecha de fin exactas:
+
+| Campo | Descripción |
+|-------|-------------|
 | **Start date** | Fecha de inicio del sprint |
 | **End date** | Fecha de fin del sprint |
-| **Total story points** | La suma de todos los puntos del sprint |
+
+**Duration** — ingresás días hábiles y la app calcula la fecha de fin automáticamente:
+
+| Campo | Descripción |
+|-------|-------------|
+| **Start date** | Fecha de inicio del sprint |
+| **Working days** | Cantidad de días hábiles del sprint (ej: `10` para dos semanas) |
+| **Holidays** | Feriados a excluir del cómputo (formato `YYYY-MM-DD`) |
+
+> La fecha de fin calculada se muestra en tiempo real mientras escribís. Los feriados que agregues se saltean al contar los días hábiles.
 
 Una vez configurado, la app calcula automáticamente la línea ideal y ya podés empezar a loguear progreso.
 
@@ -59,7 +80,20 @@ La línea real del chart se actualiza al instante.
 
 ---
 
-### 3. Agregar o editar notas
+### 3. Editar una entry existente
+
+¿Cargaste mal los puntos? No hay problema. En la tabla de entries (abajo a la derecha):
+
+1. Hacé click en el valor de puntos de la entry que querés corregir (ej: `45 pts ✎`)
+2. Se convierte en un input — escribí el valor correcto
+3. Presioná **Enter** o hacé click fuera para guardar  
+   *(Escape cancela la edición)*
+
+El chart se actualiza inmediatamente.
+
+---
+
+### 4. Agregar o editar notas
 
 Las notas te permiten contextualizar anomalías en el chart. Por ejemplo: *"Se agregaron 8 pts de scope nuevo"* o *"Bloqueados por dependencia externa"*.
 
@@ -73,7 +107,7 @@ Las notas aparecen en el tooltip del chart al hacer hover sobre ese punto.
 
 ---
 
-### 4. Compartir el estado con tu equipo
+### 5. Compartir el estado con tu equipo
 
 La app no tiene backend — el estado completo del sprint se **codifica en la URL**. Esto significa que podés compartir exactamente lo que estás viendo con un link.
 
@@ -88,7 +122,7 @@ La app no tiene backend — el estado completo del sprint se **codifica en la UR
 
 ---
 
-### 5. Editar el sprint
+### 6. Editar el sprint
 
 Si necesitás corregir el nombre, las fechas o el total de puntos:
 
@@ -98,7 +132,7 @@ Si necesitás corregir el nombre, las fechas o el total de puntos:
 
 ---
 
-### 6. Reiniciar
+### 7. Reiniciar
 
 Si querés empezar un sprint nuevo desde cero:
 
@@ -148,6 +182,14 @@ npm run build
 ```
 
 Los archivos de salida quedan en `dist/`. Podés servir esa carpeta con cualquier hosting estático (Vercel, Netlify, GitHub Pages, nginx, etc.).
+
+### Deploy a GitHub Pages
+
+```bash
+npm run deploy
+```
+
+Esto construye el proyecto y lo publica automáticamente en la rama `gh-pages`.
 
 ### Preview del build
 
