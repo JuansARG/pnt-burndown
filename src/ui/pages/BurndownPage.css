@@ -161,6 +161,58 @@
   min-width: 90px;
 }
 
+.entry-row__date--btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.entry-row__date--btn:hover {
+  color: var(--color-text-primary);
+}
+
+.entry-row__date-input {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-focus);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  width: 120px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 68, 89, 0.4);
+  color-scheme: dark;
+}
+
+.entry-row__delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-base);
+  line-height: 1;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-1);
+  margin-left: auto;
+  opacity: 0;
+  transition: color var(--duration-fast) var(--ease-out),
+              opacity var(--duration-fast) var(--ease-out);
+}
+
+.entry-row:hover .entry-row__delete-btn {
+  opacity: 1;
+}
+
+.entry-row__delete-btn:hover {
+  color: var(--color-danger);
+}
+
 .entry-row__points {
   font-family: var(--font-mono);
   font-size: var(--text-sm);

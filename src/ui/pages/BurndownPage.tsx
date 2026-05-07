@@ -16,10 +16,11 @@ interface NoteTarget {
 interface EditingEntry {
   date: string;
   value: string;
+  editingDate?: string; // new date being typed
 }
 
 export function BurndownPage() {
-  const { sprint, idealLine, isSharing, shareUrl, setupSprint, logDay, updateNote, share, reset } =
+  const { sprint, idealLine, isSharing, shareUrl, setupSprint, logDay, deleteEntry, updateNote, share, reset } =
     useBurndown();
 
   const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
@@ -101,7 +102,39 @@ export function BurndownPage() {
                 .sort((a, b) => b.date.localeCompare(a.date))
                 .map(entry => (
                   <div key={entry.date} className="entry-row">
-                    <span className="entry-row__date">{entry.date}</span>
+                    {/* DATE — editable */}
+                    {editingEntry?.date === entry.date ? (
+                      <input
+                        className="entry-row__date-input"
+                        type="date"
+                        value={editingEntry.editingDate ?? entry.date}
+                        min={sprint.startDate}
+                        max={sprint.endDate}
+                        onChange={e => setEditingEntry({ ...editingEntry, editingDate: e.target.value })}
+                        onBlur={() => {
+                          const newDate = editingEntry.editingDate;
+                          if (newDate && newDate !== entry.date) {
+                            // delete old, insert with new date
+                            deleteEntry(entry.date);
+                            logDay({ ...entry, date: newDate });
+                            setEditingEntry({ date: newDate, value: String(entry.remaining) });
+                          }
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') setEditingEntry(null);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        className="entry-row__date entry-row__date--btn"
+                        title="Click to edit date"
+                        onClick={() => setEditingEntry({ date: entry.date, value: String(entry.remaining), editingDate: entry.date })}
+                      >
+                        {entry.date}
+                        <span className="entry-row__edit-icon" aria-hidden="true">✎</span>
+                      </button>
+                    )}
 
                     {editingEntry?.date === entry.date ? (
                       <input
@@ -145,6 +178,15 @@ export function BurndownPage() {
                       ) : (
                         <span className="entry-row__add-note">+ note</span>
                       )}
+                    </button>
+                    {/* DELETE */}
+                    <button
+                      className="entry-row__delete-btn"
+                      title="Delete entry"
+                      onClick={() => deleteEntry(entry.date)}
+                      aria-label={`Delete entry ${entry.date}`}
+                    >
+                      ×
                     </button>
                   </div>
                 ))}

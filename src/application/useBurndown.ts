@@ -14,6 +14,7 @@ export interface BurndownState {
 export interface BurndownActions {
   setupSprint(sprint: Sprint): void;
   logDay(entry: DayEntry): void;       // upserts by date
+  deleteEntry(date: string): void;
   updateNote(date: string, note: string): void;
   share(): void;
   reset(): void;
@@ -72,6 +73,11 @@ export function useBurndown(): BurndownState & BurndownActions {
     persistAndUpdate({ ...sprint, entries: nextEntries });
   }
 
+  function deleteEntry(date: string): void {
+    if (!sprint) return;
+    persistAndUpdate({ ...sprint, entries: sprint.entries.filter(e => e.date !== date) });
+  }
+
   function updateNote(date: string, note: string): void {
     if (!sprint) return;
     const nextEntries = sprint.entries.map(e =>
@@ -104,6 +110,7 @@ export function useBurndown(): BurndownState & BurndownActions {
     shareUrl,
     setupSprint,
     logDay,
+    deleteEntry,
     updateNote,
     share,
     reset,
