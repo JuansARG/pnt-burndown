@@ -1,0 +1,91 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   BURNUP — Design System Tokens
+   Aesthetic: Industrial / Tactical Dark — terminal precision meets ops dashboard
+   Fonts: "IBM Plex Mono" (code/data) + "Space Mono" display → loaded in index.html
+   Signal color: Amber #F59E0B — warnings, progress, live data
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  /* ── Color palette ─────────────────────── */
+  --color-bg:           #0D0F12;   /* near-black, slight blue undertone */
+  --color-surface:      #13161C;   /* card / panel background */
+  --color-surface-2:    #1A1E27;   /* elevated surface */
+  --color-border:       #252A35;   /* default border */
+  --color-border-focus: #3B4459;   /* focused/hover border */
+
+  /* Signal: amber (data is live, progress is happening) */
+  --color-signal:       #F59E0B;
+  --color-signal-dim:   rgba(245, 158, 11, 0.15);
+  --color-signal-glow:  rgba(245, 158, 11, 0.35);
+
+  /* Ideal line: cool teal — the plan, calm and steady */
+  --color-ideal:        #2DD4BF;
+  --color-ideal-dim:    rgba(45, 212, 191, 0.12);
+
+  /* Danger / error */
+  --color-danger:       #EF4444;
+  --color-danger-dim:   rgba(239, 68, 68, 0.15);
+
+  /* Success */
+  --color-success:      #22C55E;
+
+  /* Text */
+  --color-text-primary:   #E8EAF0;   /* headings, primary labels */
+  --color-text-secondary: #7A8499;   /* captions, meta */
+  --color-text-muted:     #4A5165;   /* disabled, placeholder */
+  --color-text-inverse:   #0D0F12;
+
+  /* ── Typography ────────────────────────── */
+  --font-mono:    'IBM Plex Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-display: 'Space Mono', 'IBM Plex Mono', monospace;
+
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 15px;
+  --text-md:   17px;
+  --text-lg:   22px;
+  --text-xl:   28px;
+  --text-2xl:  38px;
+
+  --leading-tight:  1.2;
+  --leading-normal: 1.5;
+  --tracking-wide:  0.08em;
+  --tracking-wider: 0.12em;
+
+  /* ── Spacing ───────────────────────────── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* ── Borders ───────────────────────────── */
+  --radius-sm:  3px;
+  --radius-md:  6px;
+  --radius-lg:  10px;
+  --radius-xl:  16px;
+
+  /* ── Shadows ───────────────────────────── */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.5);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.6);
+  --shadow-signal: 0 0 16px var(--color-signal-glow);
+  --shadow-ideal:  0 0 12px rgba(45, 212, 191, 0.2);
+
+  /* ── Transitions ───────────────────────── */
+  --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 220ms;
+
+  /* ── Chart ─────────────────────────────── */
+  --chart-bg:        #0D0F12;
+  --chart-grid:      rgba(255,255,255,0.04);
+  --chart-axis-text: #4A5165;
+  --chart-dot-size:  5px;
+}

@@ -1,0 +1,46 @@
+schema: spec-driven
+
+context: |
+  Tech stack: React 19, TypeScript, Vite
+  Architecture: Hexagonal / Clean Architecture (domain, infrastructure, application, ui)
+  Testing: none (sin TDD por decisión del equipo)
+  Style: ESLint + typescript-eslint
+
+strict_tdd: false
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, ui)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Domain entities must NOT import from React or any framework
+    - UI components must be purely presentational where possible
+  verify:
+    - No tests — verify manually via dev server
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)
+
+testing:
+  strict_tdd: false
+  runner: NOT FOUND
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage: NOT AVAILABLE
+  quality:
+    linter: "eslint ."
+    type_checker: "tsc -b"
+    formatter: NOT AVAILABLE

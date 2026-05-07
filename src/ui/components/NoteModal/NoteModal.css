@@ -1,0 +1,120 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: backdropIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-focus);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  box-shadow: var(--shadow-md);
+  animation: modalIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes modalIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.modal__label-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-ideal);
+  background: var(--color-ideal-dim);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.modal__date {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.modal__close {
+  margin-left: auto;
+}
+
+.modal__textarea {
+  resize: none;
+  min-height: 100px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--space-4);
+}
+
+.modal__actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* Import shared field styles from DayForm */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+
+.field__optional {
+  text-transform: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.field__input {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.field__input:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 68, 89, 0.5);
+}
+
+.field__input::placeholder {
+  color: var(--color-text-muted);
+}

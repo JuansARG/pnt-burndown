@@ -1,0 +1,63 @@
+.burndown-chart-wrap {
+  width: 100%;
+  position: relative;
+}
+
+.burndown-chart {
+  display: block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: visible;
+}
+
+.chart-dot {
+  transition: r var(--duration-fast) var(--ease-out);
+}
+
+.chart-dot:hover,
+.burndown-chart g:hover .chart-dot {
+  r: 7;
+}
+
+.line-actual {
+  filter: drop-shadow(0 0 6px var(--color-signal-glow));
+}
+
+.line-ideal {
+  filter: drop-shadow(0 0 4px rgba(45, 212, 191, 0.15));
+}
+
+/* Legend */
+.chart-legend {
+  display: flex;
+  gap: var(--space-6);
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+  padding-right: var(--space-2);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-signal);
+  margin-right: var(--space-2);
+  box-shadow: 0 0 6px var(--color-signal-glow);
+}
+
+.legend-ideal {
+  color: var(--color-ideal);
+  opacity: 0.8;
+}
