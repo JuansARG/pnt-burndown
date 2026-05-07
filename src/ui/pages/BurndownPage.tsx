@@ -16,17 +16,18 @@ interface NoteTarget {
 interface EditingEntry {
   date: string;
   value: string;
-  editingDate?: string; // new date being typed
 }
 
 export function BurndownPage() {
-  const { sprint, idealLine, isSharing, shareUrl, setupSprint, logDay, deleteEntry, updateNote, share, reset } =
+  const { sprint, idealLine, isSharing, shareUrl, setupSprint, logDay, deleteEntry, updateEntryDate, updateNote, share, reset } =
     useBurndown();
 
   const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
   const [showReset, setShowReset] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EditingEntry | null>(null);
+  const [editingDateFor, setEditingDateFor] = useState<string | null>(null); // date key of the entry being date-edited
+  const [dateError, setDateError] = useState<string | null>(null);
 
   if (!sprint || showEdit) {
     return (
@@ -103,33 +104,38 @@ export function BurndownPage() {
                 .map(entry => (
                   <div key={entry.date} className="entry-row">
                     {/* DATE — editable */}
-                    {editingEntry?.date === entry.date ? (
+                    {editingDateFor === entry.date ? (
                       <input
                         className="entry-row__date-input"
                         type="date"
-                        value={editingEntry.editingDate ?? entry.date}
+                        defaultValue={entry.date}
                         min={sprint.startDate}
                         max={sprint.endDate}
-                        onChange={e => setEditingEntry({ ...editingEntry, editingDate: e.target.value })}
-                        onBlur={() => {
-                          const newDate = editingEntry.editingDate;
-                          if (newDate && newDate !== entry.date) {
-                            // delete old, insert with new date
-                            deleteEntry(entry.date);
-                            logDay({ ...entry, date: newDate });
+                        autoFocus
+                        onChange={e => {
+                          const newDate = e.target.value;
+                          if (!newDate) return;
+                          const ok = updateEntryDate(entry.date, newDate);
+                          if (!ok) {
+                            setDateError(`Ya existe una entry para ${newDate}`);
+                            return;
+                          }
+                          setDateError(null);
+                          setEditingDateFor(null);
+                          if (editingEntry?.date === entry.date) {
                             setEditingEntry({ date: newDate, value: String(entry.remaining) });
                           }
                         }}
                         onKeyDown={e => {
-                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') setEditingEntry(null);
+                          if (e.key === 'Escape') setEditingDateFor(null);
                         }}
+                        onBlur={() => { setEditingDateFor(null); setDateError(null); }}
                       />
                     ) : (
                       <button
                         className="entry-row__date entry-row__date--btn"
                         title="Click to edit date"
-                        onClick={() => setEditingEntry({ date: entry.date, value: String(entry.remaining), editingDate: entry.date })}
+                        onClick={() => setEditingDateFor(entry.date)}
                       >
                         {entry.date}
                         <span className="entry-row__edit-icon" aria-hidden="true">✎</span>
@@ -191,6 +197,9 @@ export function BurndownPage() {
                   </div>
                 ))}
             </div>
+            {dateError && (
+              <p className="entries-panel__error">{dateError}</p>
+            )}
           </div>
         )}
       </div>

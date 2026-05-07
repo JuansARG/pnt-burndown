@@ -13,8 +13,9 @@ export interface BurndownState {
 
 export interface BurndownActions {
   setupSprint(sprint: Sprint): void;
-  logDay(entry: DayEntry): void;       // upserts by date
+  logDay(entry: DayEntry): void;
   deleteEntry(date: string): void;
+  updateEntryDate(oldDate: string, newDate: string): boolean; // false = date already taken
   updateNote(date: string, note: string): void;
   share(): void;
   reset(): void;
@@ -78,6 +79,17 @@ export function useBurndown(): BurndownState & BurndownActions {
     persistAndUpdate({ ...sprint, entries: sprint.entries.filter(e => e.date !== date) });
   }
 
+  function updateEntryDate(oldDate: string, newDate: string): boolean {
+    if (!sprint) return false;
+    const alreadyExists = sprint.entries.some(e => e.date === newDate);
+    if (alreadyExists) return false;
+    const nextEntries = sprint.entries
+      .map(e => e.date === oldDate ? { ...e, date: newDate } : e)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    persistAndUpdate({ ...sprint, entries: nextEntries });
+    return true;
+  }
+
   function updateNote(date: string, note: string): void {
     if (!sprint) return;
     const nextEntries = sprint.entries.map(e =>
@@ -111,6 +123,7 @@ export function useBurndown(): BurndownState & BurndownActions {
     setupSprint,
     logDay,
     deleteEntry,
+    updateEntryDate,
     updateNote,
     share,
     reset,
