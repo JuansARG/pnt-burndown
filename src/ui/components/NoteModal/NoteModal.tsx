@@ -10,11 +10,12 @@ interface NoteModalProps {
 
 export function NoteModal({ date, initialNote = '', onSave, onClose }: NoteModalProps) {
   const [note, setNote] = useState(initialNote);
+  const [isEditing, setIsEditing] = useState(!initialNote);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    if (isEditing) textareaRef.current?.focus();
+  }, [isEditing]);
 
   // Close on Escape
   useEffect(() => {
@@ -31,35 +32,60 @@ export function NoteModal({ date, initialNote = '', onSave, onClose }: NoteModal
     onClose();
   }
 
+  function handleEdit() {
+    setIsEditing(true);
+  }
+
+  function handleCancel() {
+    if (isEditing && initialNote) {
+      setNote(initialNote);
+      setIsEditing(false);
+    } else {
+      onClose();
+    }
+  }
+
   return (
-    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Edit note">
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Note">
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal__header">
-          <span className="modal__label-tag">EDIT NOTE</span>
+          <span className="modal__label-tag">{isEditing ? 'EDIT NOTE' : 'NOTE'}</span>
           <span className="modal__date">{date}</span>
           <button className="modal__close btn btn--ghost" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="field">
-            <label className="field__label" htmlFor="note-textarea">
-              Note <span className="field__optional">({note.length}/280)</span>
-            </label>
+            {isEditing && (
+              <label className="field__label" htmlFor="note-textarea">
+                Note <span className="field__optional">({note.length}/280)</span>
+              </label>
+            )}
             <textarea
               id="note-textarea"
               ref={textareaRef}
-              className="field__input modal__textarea"
+              className={isEditing ? 'field__input modal__textarea' : 'modal__textarea modal__textarea--readonly'}
               value={note}
               maxLength={280}
               rows={4}
-              placeholder="What happened this day?"
+              placeholder={isEditing ? 'What happened this day?' : ''}
+              readOnly={!isEditing}
               onChange={e => setNote(e.target.value)}
             />
           </div>
 
           <div className="modal__actions">
-            <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn--primary">Save note</button>
+            {!isEditing && (
+              <button type="button" className="btn btn--secondary modal__edit-btn" onClick={handleEdit}>Edit</button>
+            )}
+            <div className="modal__actions-right">
+              <button type="button" className="btn btn--secondary" onClick={handleCancel}>
+                {isEditing && initialNote ? 'Cancel' : 'Close'}
+              </button>
+              {isEditing && (
+                <button type="submit" className="btn btn--primary">Save note</button>
+              )}
+            </div>
           </div>
         </form>
       </div>

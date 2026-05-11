@@ -86,10 +86,10 @@ export function DayForm({ sprintStartDate, sprintEndDate, onSubmit }: DayFormPro
         <label className="field__label" htmlFor="df-note">
           Note <span className="field__optional">(optional · {note.length}/280)</span>
         </label>
-        <input
+        <textarea
           id="df-note"
-          className="field__input"
-          type="text"
+          className="field__input field__textarea"
+          rows={3}
           maxLength={280}
           placeholder="Blocker, context, team note…"
           value={note}

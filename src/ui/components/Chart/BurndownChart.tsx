@@ -58,7 +58,14 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
     })
     .filter(Boolean) as Array<{ e: (typeof sortedEntries)[0]; i: number }>;
 
-  const actualPoints = actualPairs.map(({ e, i }) => `${xCoord(i)},${yCoord(e.remaining)}`).join(' ');
+  // Implicit Day 1 point: if there are entries but none for startDate, prepend one for rendering only
+  const implicitDay1: typeof actualPairs =
+    actualPairs.length > 0 && !sortedEntries.find(e => e.date === sprint.startDate)
+      ? [{ e: { date: sprint.startDate, remaining: sprint.totalPoints }, i: dateIndexMap.get(sprint.startDate) ?? 0 }]
+      : [];
+  const allActualPairs = [...implicitDay1, ...actualPairs];
+
+  const actualPoints = allActualPairs.map(({ e, i }) => `${xCoord(i)},${yCoord(e.remaining)}`).join(' ');
 
   // Grid lines — horizontal, every 25% of totalPoints
   const gridValues = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(f * totalPoints));
@@ -139,15 +146,15 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
         )}
 
         {/* Actual area fill (subtle) */}
-        {actualPairs.length > 1 && (
+        {allActualPairs.length > 1 && (
           <polygon
-            points={`${xCoord(actualPairs[0].i)},${PAD.top + CHART_H} ${actualPoints} ${xCoord(actualPairs[actualPairs.length - 1].i)},${PAD.top + CHART_H}`}
+            points={`${xCoord(allActualPairs[0].i)},${PAD.top + CHART_H} ${actualPoints} ${xCoord(allActualPairs[allActualPairs.length - 1].i)},${PAD.top + CHART_H}`}
             fill="var(--color-signal-dim)"
           />
         )}
 
         {/* Actual line (solid, amber) */}
-        {actualPairs.length > 1 && (
+        {allActualPairs.length > 1 && (
           <polyline
             className="line-actual"
             points={actualPoints}
@@ -222,11 +229,24 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
 
         {/* Tooltip */}
         {tooltip && (() => {
-          const pw = tooltip.note ? Math.max(170, tooltip.note.length * 7 + 24) : 160;
-          const ph = tooltip.note ? 66 : 46;
+          const pw = 220;
           const cx = pw / 2;
+          const charsPerLine = 28;
+          const noteLines: string[] = [];
+          if (tooltip.note) {
+            const note = tooltip.note;
+            if (note.length <= charsPerLine) {
+              noteLines.push(note);
+            } else {
+              noteLines.push(note.slice(0, charsPerLine));
+              const rest = note.slice(charsPerLine);
+              noteLines.push(rest.length > charsPerLine ? rest.slice(0, charsPerLine - 1) + '…' : rest);
+            }
+          }
+          const ph = noteLines.length === 2 ? 80 : noteLines.length === 1 ? 66 : 46;
+          const tx = tooltip.x + 12 + pw > W ? tooltip.x - pw - 12 : tooltip.x + 12;
           return (
-            <g transform={`translate(${tooltip.x + 12}, ${tooltip.y - 10})`}>
+            <g transform={`translate(${tx}, ${tooltip.y - 10})`}>
               <rect
                 x={0}
                 y={0}
@@ -261,18 +281,19 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
               >
                 {tooltip.value} pts
               </text>
-              {tooltip.note && (
+              {noteLines.map((line, i) => (
                 <text
+                  key={i}
                   x={cx}
-                  y={54}
+                  y={54 + i * 14}
                   textAnchor="middle"
                   fontFamily="var(--font-mono)"
                   fontSize="10"
                   fill="var(--color-text-secondary)"
                 >
-                  {tooltip.note.length > 28 ? tooltip.note.slice(0, 28) + '…' : tooltip.note}
+                  {line}
                 </text>
-              )}
+              ))}
             </g>
           );
         })()}

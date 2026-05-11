@@ -79,6 +79,15 @@
   box-sizing: border-box;
 }
 
+.field__textarea {
+  resize: vertical;
+  min-height: 72px;
+  max-height: 120px;
+  font-family: inherit;
+  font-size: inherit;
+  overflow-y: auto;
+}
+
 .day-form__error {
   font-family: var(--font-mono);
   font-size: var(--text-sm);

@@ -179,7 +179,7 @@ export function BurndownPage() {
                     >
                       {entry.note ? (
                         <span className="entry-row__note-preview" title={entry.note}>
-                          📝 {entry.note.slice(0, 30)}{entry.note.length > 30 ? '…' : ''}
+                          📝 {entry.note.slice(0, 40)}{entry.note.length > 40 ? '…' : ''}
                         </span>
                       ) : (
                         <span className="entry-row__add-note">+ note</span>
@@ -447,7 +447,7 @@ function SprintSetupForm({ onSetup, initial }: SprintSetupFormProps) {
 
               <div className="field">
                 <label className="field__label">Ends on (calculated)</label>
-                <div className="field__preview">{computedEndDate || '—'}</div>
+                <div className="field__preview" tabIndex={-1}>{computedEndDate || '—'}</div>
               </div>
 
               {/* Holidays */}

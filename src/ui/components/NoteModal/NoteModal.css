@@ -70,10 +70,35 @@
   margin-bottom: var(--space-4);
 }
 
+.modal__textarea--readonly {
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: default;
+  resize: none;
+  user-select: text;
+}
+
+.modal__textarea--readonly:focus {
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.modal__edit-btn {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-3);
+}
+
 .modal__actions {
   display: flex;
   gap: var(--space-3);
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal__actions-right {
+  display: flex;
+  gap: var(--space-3);
 }
 
 /* Import shared field styles from DayForm */

@@ -285,10 +285,16 @@
   flex: 1;
   text-align: left;
   padding: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .entry-row__note-preview {
   color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .entry-row__add-note {
@@ -623,10 +629,12 @@
   font-family: var(--font-mono);
   font-size: var(--text-base);
   color: var(--color-text-muted);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: transparent;
+  border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   width: 100%;
   box-sizing: border-box;
+  cursor: default;
+  user-select: none;
 }
