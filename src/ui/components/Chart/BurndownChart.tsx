@@ -6,12 +6,14 @@ import './BurndownChart.css';
 export interface BurndownChartProps {
   sprint: Sprint;
   idealLine: IdealPoint[];
+  axisMode: 'date' | 'day';
 }
 
 interface TooltipData {
   x: number;
   y: number;
   date: string;
+  dayIndex: number;
   value: number;
   note?: string;
   type: 'actual' | 'ideal';
@@ -28,7 +30,16 @@ function dateToLabel(date: string): string {
   return `${parseInt(m)}/${parseInt(d)}`;
 }
 
-export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
+function dateToDay(date: string, startDate: string): string {
+  const [sy, sm, sd] = startDate.split('-').map(Number);
+  const [dy, dm, dd] = date.split('-').map(Number);
+  const start = Date.UTC(sy, sm - 1, sd);
+  const current = Date.UTC(dy, dm - 1, dd);
+  const n = Math.round((current - start) / 86_400_000) + 1;
+  return `Day ${n}`;
+}
+
+export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProps) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
   const totalDays = idealLine.length > 1 ? idealLine.length - 1 : 1;
@@ -121,7 +132,7 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
                 y={PAD.top + CHART_H + 20}
                 textAnchor="middle"
               >
-                {dateToLabel(p.date)}
+                {axisMode === 'day' ? `Day ${idx + 1}` : dateToLabel(p.date)}
               </text>
             );
           })}
@@ -184,6 +195,7 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
                 x: (evt.clientX - rect.left) * scaleX,
                 y: (evt.clientY - rect.top) * scaleY,
                 date: p.date,
+                dayIndex: i,
                 value: p.value,
                 type: 'ideal',
               });
@@ -218,6 +230,7 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
                   x: (evt.clientX - rect.left) * scaleX,
                   y: (evt.clientY - rect.top) * scaleY,
                   date: e.date,
+                  dayIndex: i,
                   value: e.remaining,
                   note: e.note,
                   type: 'actual',
@@ -265,7 +278,7 @@ export function BurndownChart({ sprint, idealLine }: BurndownChartProps) {
                 fontSize="11"
                 fill="var(--color-text-secondary)"
               >
-                {tooltip.date}
+                {axisMode === 'day' ? `Day ${tooltip.dayIndex + 1}` : dateToLabel(tooltip.date)}
                 <tspan dx="8" fill={tooltip.type === 'actual' ? 'var(--color-signal)' : 'var(--color-ideal)'}>
                   {tooltip.type === 'actual' ? '● actual' : '◌ ideal'}
                 </tspan>

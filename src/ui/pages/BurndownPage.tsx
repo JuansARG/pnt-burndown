@@ -28,6 +28,7 @@ export function BurndownPage() {
   const [editingEntry, setEditingEntry] = useState<EditingEntry | null>(null);
   const [editingDateFor, setEditingDateFor] = useState<string | null>(null); // date key of the entry being date-edited
   const [dateError, setDateError] = useState<string | null>(null);
+  const [axisMode, setAxisMode] = useState<'date' | 'day'>('date');
 
   if (!sprint || showEdit) {
     return (
@@ -58,28 +59,46 @@ export function BurndownPage() {
           </span>
         </div>
         <div className="page-header__right">
-          <div className="stat">
-            <span className="stat__label">Total</span>
-            <span className="stat__value">{sprint.totalPoints} pts</span>
-          </div>
-          {lastEntry && (
-            <div className="stat">
-              <span className="stat__label">Remaining</span>
-              <span className="stat__value stat__value--signal">{lastEntry.remaining} pts</span>
-            </div>
-          )}
-          <div className="stat">
-            <span className="stat__label">Done</span>
-            <span className="stat__value stat__value--signal">{progress}%</span>
-          </div>
           <button className="btn btn--ghost" onClick={() => setShowEdit(true)}>Edit</button>
           <button className="btn btn--ghost" onClick={() => setShowReset(true)}>Reset</button>
         </div>
       </header>
 
+      {/* Stats cards */}
+      <div className="stats-row">
+        <div className="stats-card stats-card--total">
+          <span className="stats-card__label">Total</span>
+          <span className="stats-card__value">{sprint.totalPoints} pts</span>
+        </div>
+        <div className="stats-card stats-card--remaining">
+          <span className="stats-card__label">Remaining</span>
+          <span className="stats-card__value">{lastEntry ? lastEntry.remaining : sprint.totalPoints} pts</span>
+        </div>
+        <div className="stats-card stats-card--done">
+          <span className="stats-card__label">Done</span>
+          <span className="stats-card__value">{progress}%</span>
+        </div>
+      </div>
+
       {/* Chart */}
       <section className="section">
-        <BurndownChart sprint={sprint} idealLine={idealLine} />
+        <div className="mode-toggle" style={{ marginBottom: 8 }}>
+          <button
+            type="button"
+            className={`mode-toggle__btn${axisMode === 'date' ? ' mode-toggle__btn--active' : ''}`}
+            onClick={() => setAxisMode('date')}
+          >
+            Date
+          </button>
+          <button
+            type="button"
+            className={`mode-toggle__btn${axisMode === 'day' ? ' mode-toggle__btn--active' : ''}`}
+            onClick={() => setAxisMode('day')}
+          >
+            Day
+          </button>
+        </div>
+        <BurndownChart sprint={sprint} idealLine={idealLine} axisMode={axisMode} />
       </section>
 
       {/* Bottom grid */}
