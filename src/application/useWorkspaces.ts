@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { Workspace } from '../domain/entities/Workspace';
 import { workspaceStorageAdapter } from '../infrastructure/storage/workspaceStorageAdapter';
+import { burndownStorageAdapter } from '../infrastructure/storage/burndownStorageAdapter';
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -39,6 +40,10 @@ export function useWorkspaces() {
   }, [refresh]);
 
   const remove = useCallback((id: string): void => {
+    const burndowns = burndownStorageAdapter.listByWorkspace(id);
+    for (const bd of burndowns) {
+      burndownStorageAdapter.remove(bd.id);
+    }
     workspaceStorageAdapter.remove(id);
     refresh();
   }, [refresh]);

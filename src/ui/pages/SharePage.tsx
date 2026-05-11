@@ -4,8 +4,7 @@ import { BurndownChart } from '../components/Chart/BurndownChart';
 import { calculateIdealLine } from '../../domain/usecases/calculateIdealLine';
 
 export function SharePage() {
-  const search = useSearch({ from: '/share' });
-  const data = (search as Record<string, string>)['data'];
+  const { data } = useSearch({ from: '/share' });
 
   if (!data) {
     return (
@@ -16,7 +15,7 @@ export function SharePage() {
             <h1 className="page-header__title">Shared Burndown</h1>
           </div>
         </header>
-        <p style={{ color: 'var(--color-muted)' }}>No data provided in URL.</p>
+        <p style={{ color: 'var(--color-muted)' }}>Invalid share link</p>
         <Link to="/" className="btn btn--ghost">← Go home</Link>
       </div>
     );

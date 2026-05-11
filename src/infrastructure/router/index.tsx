@@ -39,6 +39,9 @@ const burndownRoute = createRoute({
 const shareRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/share',
+  validateSearch: (search: Record<string, unknown>): { data?: string } => ({
+    data: typeof search['data'] === 'string' ? search['data'] : undefined,
+  }),
   component: SharePage,
 });
 

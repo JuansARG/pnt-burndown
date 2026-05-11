@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useParams, Link } from '@tanstack/react-router';
+import { useParams, Link, useNavigate } from '@tanstack/react-router';
 import { useBurndownList } from '../../application/useBurndownList';
 import { useWorkspaces } from '../../application/useWorkspaces';
 
 export function WorkspacePage() {
   const { wid } = useParams({ from: '/workspace/$wid' });
+  const navigate = useNavigate();
   const { workspaces } = useWorkspaces();
   const { burndowns, create, remove } = useBurndownList(wid);
   const [newName, setNewName] = useState('');
@@ -15,9 +16,10 @@ export function WorkspacePage() {
   function handleCreate() {
     const name = newName.trim();
     if (!name) { setError('Burndown name is required'); return; }
-    create(name);
+    const bd = create(name);
     setNewName('');
     setError('');
+    navigate({ to: '/workspace/$wid/burndown/$bid', params: { wid, bid: bd.id } });
   }
 
   return (

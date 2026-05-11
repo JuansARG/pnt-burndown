@@ -8,6 +8,7 @@ export function WorkspaceListPage() {
   const [error, setError] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   function handleCreate() {
     const name = newName.trim();
@@ -83,14 +84,34 @@ export function WorkspaceListPage() {
                   Rename
                 </button>
 
-                <button
-                  className="entry-row__delete-btn"
-                  title="Delete workspace"
-                  onClick={() => remove(ws.id)}
-                  aria-label={`Delete workspace ${ws.name}`}
-                >
-                  ×
-                </button>
+                {confirmDeleteId === ws.id ? (
+                  <>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>Delete?</span>
+                    <button
+                      className="btn btn--danger"
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                      onClick={() => { remove(ws.id); setConfirmDeleteId(null); }}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      className="btn btn--ghost"
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                      onClick={() => setConfirmDeleteId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="entry-row__delete-btn"
+                    title="Delete workspace"
+                    onClick={() => setConfirmDeleteId(ws.id)}
+                    aria-label={`Delete workspace ${ws.name}`}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>
