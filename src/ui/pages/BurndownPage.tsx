@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useParams, Link } from '@tanstack/react-router';
 import { useBurndown } from '../../application/useBurndown';
 import type { Sprint } from '../../domain/entities/Sprint';
 import { getWorkingDayEndDate, getWorkingDays } from '../../domain/usecases/workingDays';
@@ -19,8 +20,9 @@ interface EditingEntry {
 }
 
 export function BurndownPage() {
+  const { bid, wid } = useParams({ from: '/workspace/$wid/burndown/$bid' });
   const { sprint, idealLine, isSharing, shareUrl, setupSprint, logDay, deleteEntry, updateEntryDate, updateNote, share, reset } =
-    useBurndown();
+    useBurndown(bid);
 
   const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
   const [showReset, setShowReset] = useState(false);
@@ -30,11 +32,12 @@ export function BurndownPage() {
   const [dateError, setDateError] = useState<string | null>(null);
   const [axisMode, setAxisMode] = useState<'date' | 'day'>('date');
 
-  if (!sprint || showEdit) {
+  if (!sprint || showEdit || !sprint.startDate) {
     return (
       <SprintSetupForm
         onSetup={(updated) => { setupSprint({ ...updated, entries: sprint?.entries ?? [] }); setShowEdit(false); }}
-        initial={sprint ?? undefined}
+        initial={sprint?.startDate ? sprint : undefined}
+        backTo={wid ? `/workspace/${wid}` : '/'}
       />
     );
   }
@@ -59,6 +62,7 @@ export function BurndownPage() {
           </span>
         </div>
         <div className="page-header__right">
+          <Link to="/workspace/$wid" params={{ wid }} className="btn btn--ghost">← Back</Link>
           <button className="btn btn--ghost" onClick={() => setShowEdit(true)}>Edit</button>
           <button className="btn btn--ghost" onClick={() => setShowReset(true)}>Reset</button>
         </div>
@@ -265,6 +269,7 @@ export function BurndownPage() {
 interface SprintSetupFormProps {
   onSetup: (sprint: Sprint) => void;
   initial?: Sprint;
+  backTo?: string;
 }
 
 function todayISO(): string {
@@ -277,7 +282,7 @@ function offsetDate(days: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function SprintSetupForm({ onSetup, initial }: SprintSetupFormProps) {
+function SprintSetupForm({ onSetup, initial, backTo }: SprintSetupFormProps) {
   // Determine initial mode and working days count from existing sprint
   const initialMode = initial?.useWorkingDays === true ? 'duration' : 'dates';
   const initialHolidays = initial?.holidays ?? [];
@@ -373,6 +378,11 @@ function SprintSetupForm({ onSetup, initial }: SprintSetupFormProps) {
     <div className="setup-page">
       <div className="setup-card">
         <div className="setup-card__header">
+          {backTo && (
+            <Link to={backTo} className="btn btn--ghost" style={{ marginBottom: '0.5rem', display: 'inline-block' }}>
+              ← Back
+            </Link>
+          )}
           <span className="setup-card__tag">BURNUP</span>
           <h1 className="setup-card__title">{initial ? 'Edit Sprint' : 'New Sprint'}</h1>
           <p className="setup-card__subtitle">{initial ? 'Update sprint settings. Logged entries are preserved.' : 'Configure your sprint to start tracking burndown.'}</p>
