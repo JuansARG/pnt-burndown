@@ -12,6 +12,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .day-form__label-tag {
@@ -86,6 +87,36 @@
   font-family: inherit;
   font-size: inherit;
   overflow-y: auto;
+}
+
+.day-form__mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  margin-left: auto;
+}
+
+.day-form__mode-btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.day-form__mode-btn--active {
+  background: var(--color-signal-dim);
+  color: var(--color-signal);
 }
 
 .day-form__error {

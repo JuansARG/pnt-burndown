@@ -88,6 +88,8 @@ export function BurndownPage() {
         <DayForm
           sprintStartDate={sprint.startDate}
           sprintEndDate={sprint.endDate}
+          totalPoints={sprint.totalPoints}
+          entries={sprint.entries}
           onSubmit={logDay}
         />
 
