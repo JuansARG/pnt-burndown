@@ -260,13 +260,15 @@
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-signal);
-  min-width: 60px;
+  width: 85px;
+  flex: 0 0 85px;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-1);
   border-radius: var(--radius-sm);
   transition: color var(--duration-fast) var(--ease-out);
