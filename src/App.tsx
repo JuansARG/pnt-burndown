@@ -1,13 +1,8 @@
 import './ui/design-system/tokens.css';
-import { RouterProvider } from '@tanstack/react-router';
-import { router } from './infrastructure/router/index';
-import { migrateLegacySprint } from './infrastructure/storage/migrateLegacySprint';
-
-// Run one-time migration before router mounts
-migrateLegacySprint();
+import { BurndownPage } from './ui/pages/BurndownPage';
 
 function App() {
-  return <RouterProvider router={router} />;
+  return <BurndownPage />;
 }
 
 export default App;

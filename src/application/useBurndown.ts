@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { Sprint, DayEntry } from '../domain/entities/Sprint';
-import type { Burndown } from '../domain/entities/Burndown';
 import { calculateIdealLine, type IdealPoint } from '../domain/usecases/calculateIdealLine';
-import { burndownStorageAdapter } from '../infrastructure/storage/burndownStorageAdapter';
-import { shareUrlAdapter } from '../infrastructure/sharing/shareUrlAdapter';
+import { localStorageAdapter } from '../infrastructure/storage/localStorageAdapter';
+import { urlStateAdapter } from '../infrastructure/url/urlStateAdapter';
 
 export interface BurndownState {
   sprint: Sprint | null;
@@ -27,102 +26,97 @@ function computeIdealLine(sprint: Sprint | null): IdealPoint[] {
   return calculateIdealLine(sprint);
 }
 
-export function useBurndown(burndownId: string): BurndownState & BurndownActions {
-  const [burndown, setBurndown] = useState<Burndown | null>(null);
+export function useBurndown(): BurndownState & BurndownActions {
+  const [sprint, setSprint] = useState<Sprint | null>(null);
   const [idealLine, setIdealLine] = useState<IdealPoint[]>([]);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
 
-  // On mount / burndownId change: load from storage
+  // On mount: URL hash → localStorage → null
   useEffect(() => {
-    const loaded = burndownStorageAdapter.load(burndownId);
+    let loaded = urlStateAdapter.read();
     if (loaded) {
-      setBurndown(loaded);
-      setIdealLine(computeIdealLine(loaded));
+      // Sync URL hash sprint into localStorage
+      localStorageAdapter.save(loaded);
     } else {
-      setBurndown(null);
-      setIdealLine([]);
+      loaded = localStorageAdapter.load();
     }
-    setIsSharing(false);
-    setShareUrl('');
-  }, [burndownId]);
+    if (loaded) {
+      setSprint(loaded);
+      setIdealLine(computeIdealLine(loaded));
+    }
+  }, []);
 
-  function persistAndUpdate(next: Burndown) {
-    setBurndown(next);
+  function persistAndUpdate(next: Sprint) {
+    setSprint(next);
     setIdealLine(computeIdealLine(next));
-    burndownStorageAdapter.save(next);
+    localStorageAdapter.save(next);
+    // If share panel is open, keep URL in sync
+    if (isSharing) {
+      urlStateAdapter.write(next);
+      setShareUrl(window.location.href);
+    }
   }
 
   function setupSprint(newSprint: Sprint): void {
-    if (!burndown) return;
     setIsSharing(false);
     setShareUrl('');
-    persistAndUpdate({ ...burndown, ...newSprint });
+    persistAndUpdate(newSprint);
   }
 
   function logDay(entry: DayEntry): void {
-    if (!burndown) return;
-    const existing = burndown.entries.findIndex(e => e.date === entry.date);
+    if (!sprint) return;
+    const existing = sprint.entries.findIndex(e => e.date === entry.date);
     const nextEntries =
       existing >= 0
-        ? burndown.entries.map((e, i) => (i === existing ? entry : e))
-        : [...burndown.entries, entry].sort((a, b) => a.date.localeCompare(b.date));
-    persistAndUpdate({ ...burndown, entries: nextEntries });
+        ? sprint.entries.map((e, i) => (i === existing ? entry : e))
+        : [...sprint.entries, entry].sort((a, b) => a.date.localeCompare(b.date));
+    persistAndUpdate({ ...sprint, entries: nextEntries });
   }
 
   function deleteEntry(date: string): void {
-    if (!burndown) return;
-    persistAndUpdate({ ...burndown, entries: burndown.entries.filter(e => e.date !== date) });
+    if (!sprint) return;
+    persistAndUpdate({ ...sprint, entries: sprint.entries.filter(e => e.date !== date) });
   }
 
   function updateEntryDate(oldDate: string, newDate: string): boolean {
-    if (!burndown) return false;
-    const alreadyExists = burndown.entries.some(e => e.date === newDate);
+    if (!sprint) return false;
+    const alreadyExists = sprint.entries.some(e => e.date === newDate);
     if (alreadyExists) return false;
-    const nextEntries = burndown.entries
+    const nextEntries = sprint.entries
       .map(e => e.date === oldDate ? { ...e, date: newDate } : e)
       .sort((a, b) => a.date.localeCompare(b.date));
-    persistAndUpdate({ ...burndown, entries: nextEntries });
+    persistAndUpdate({ ...sprint, entries: nextEntries });
     return true;
   }
 
   function updateNote(date: string, note: string): void {
-    if (!burndown) return;
-    const nextEntries = burndown.entries.map(e =>
+    if (!sprint) return;
+    const nextEntries = sprint.entries.map(e =>
       e.date === date ? { ...e, note } : e
     );
-    persistAndUpdate({ ...burndown, entries: nextEntries });
+    persistAndUpdate({ ...sprint, entries: nextEntries });
   }
 
   function share(): void {
-    if (!burndown) return;
-    const encoded = shareUrlAdapter.encode(burndown);
-    // Build share URL: current origin + hash prefix + /share?data=
-    const base = window.location.origin + window.location.pathname;
-    const url = `${base}#/share?data=${encoded}`;
+    if (!sprint) return;
+    urlStateAdapter.write(sprint);
+    const url = window.location.href;
     setShareUrl(url);
     setIsSharing(true);
   }
 
   function reset(): void {
-    if (!burndown) return;
-    // Reset sprint data but keep identity fields
-    const reset: Burndown = {
-      ...burndown,
-      totalPoints: 0,
-      startDate: '',
-      endDate: '',
-      entries: [],
-    };
-    burndownStorageAdapter.save(reset);
-    setBurndown(reset);
+    localStorageAdapter.clear();
+    urlStateAdapter.clear();
+    setSprint(null);
     setIdealLine([]);
     setIsSharing(false);
     setShareUrl('');
   }
 
   return {
-    sprint: burndown,
+    sprint,
     idealLine,
     isSharing,
     shareUrl,

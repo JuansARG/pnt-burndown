@@ -30,6 +30,14 @@ function dateToLabel(date: string): string {
   return `${parseInt(m)}/${parseInt(d)}`;
 }
 
+function dateToDay(date: string, startDate: string): string {
+  const [sy, sm, sd] = startDate.split('-').map(Number);
+  const [dy, dm, dd] = date.split('-').map(Number);
+  const start = Date.UTC(sy, sm - 1, sd);
+  const current = Date.UTC(dy, dm - 1, dd);
+  const n = Math.round((current - start) / 86_400_000) + 1;
+  return `Day ${n}`;
+}
 
 export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProps) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);

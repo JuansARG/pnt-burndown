@@ -1,6 +1,6 @@
 # Skill Registry — burnup-gentle-ai
 
-Generated: 2026-05-11
+Generated: 2026-05-07
 
 ## Project Conventions
 
@@ -26,9 +26,4 @@ Generated: 2026-05-11
 | skill-creator | Create/edit agent skills | user-level |
 | judgment-day | Adversarial dual review | user-level |
 | branch-pr | PR creation workflow | user-level |
-| chained-pr | Split oversized PRs | user-level |
 | issue-creation | GitHub issue creation | user-level |
-| comment-writer | PR/issue comments | user-level |
-| cognitive-doc-design | READMEs, guides, docs | user-level |
-| work-unit-commits | Plan reviewable commits | user-level |
-| sdd-onboard | Full SDD cycle walkthrough | user-level |
