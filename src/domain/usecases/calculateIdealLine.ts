@@ -1,6 +1,5 @@
 import type { Sprint } from '../entities/Sprint';
 import { getWorkingDays } from './workingDays';
-import { effectiveTotalPoints } from './effectiveTotalPoints';
 
 export interface IdealPoint {
   date: string; // YYYY-MM-DD
@@ -22,19 +21,10 @@ function msToDate(ms: number): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Find the latest scope-change date ≤ the given date (or startDate if none). */
-function getSegmentStart(date: string, sortedChangeDates: string[], startDate: string): string {
-  let start = startDate;
-  for (const scDate of sortedChangeDates) {
-    if (scDate <= date) start = scDate;
-    else break;
-  }
-  return start;
-}
-
 /**
- * Returns a segmented burndown line from totalPoints on startDate to 0 on endDate.
- * Each scope change starts a new linear segment from the effective total at that date.
+ * Returns a single straight ideal line from the effective total on startDate to 0 on endDate.
+ * Scope changes affect the initial height of the line (total + all scope changes),
+ * but the line is always a single continuous slope from start to end.
  * Guard: if startDate === endDate (totalDays === 0) returns a single point.
  * When sprint.useWorkingDays is true, distributes points evenly across working days
  * and carries the last working-day value forward on non-working days.
@@ -45,54 +35,40 @@ export function calculateIdealLine(sprint: Sprint): IdealPoint[] {
   const endMs = dateToMs(sprint.endDate);
   const totalDays = Math.round((endMs - startMs) / 86400000);
 
+  // Total effective points = totalPoints + sum of all scope changes within sprint range
+  const totalEffective = sprint.totalPoints +
+    (sprint.scopeChanges ?? [])
+      .filter(sc => sc.date >= sprint.startDate && sc.date <= sprint.endDate)
+      .reduce((sum, sc) => sum + sc.delta, 0);
+
   // Guard: single-day sprint
   if (totalDays === 0) {
-    return [{ date: sprint.startDate, value: effectiveTotalPoints(sprint, sprint.startDate) }];
+    return [{ date: sprint.startDate, value: totalEffective }];
   }
-
-  const sortedChangeDates = (sprint.scopeChanges ?? [])
-    .map(sc => sc.date)
-    .filter(d => d >= sprint.startDate && d <= sprint.endDate)
-    .sort();
 
   // Working-days mode — emit only working day points (chart draws straight lines between them)
   if (sprint.useWorkingDays) {
     const workingDays = getWorkingDays(sprint.startDate, sprint.endDate, sprint.holidays ?? []);
 
     if (workingDays.length > 0) {
-      return workingDays.map(date => {
-        const segmentStart = getSegmentStart(date, sortedChangeDates, sprint.startDate);
-        const effectiveAtStart = effectiveTotalPoints(sprint, segmentStart);
-        const segmentWorkingDays = workingDays.filter(w => w >= segmentStart);
-        const wdCount = segmentWorkingDays.length;
-        const indexInSegment = segmentWorkingDays.indexOf(date);
-        const step = effectiveAtStart / (wdCount - 1 || 1);
-        return {
-          date,
-          value: Math.max(0, Math.round((effectiveAtStart - step * indexInSegment) * 10) / 10),
-        };
-      });
+      const step = totalEffective / (workingDays.length - 1 || 1);
+      return workingDays.map((date, index) => ({
+        date,
+        value: Math.max(0, Math.round((totalEffective - step * index) * 10) / 10),
+      }));
     }
   }
 
-  // Calendar mode (default / fallback)
+  // Calendar mode (default / fallback) — single straight line
+  const step = totalEffective / totalDays;
   const points: IdealPoint[] = [];
 
   for (let i = 0; i <= totalDays; i++) {
     const ms = startMs + i * 86400000;
     const date = msToDate(ms);
-    const segmentStart = getSegmentStart(date, sortedChangeDates, sprint.startDate);
-    const effectiveAtStart = effectiveTotalPoints(sprint, segmentStart);
-    const segmentStartMs = dateToMs(segmentStart);
-    const segmentDays = Math.round((endMs - segmentStartMs) / 86400000);
-    const indexInSegment = Math.round((ms - segmentStartMs) / 86400000);
-    const value = segmentDays <= 0
-      ? effectiveAtStart
-      : effectiveAtStart * (1 - indexInSegment / segmentDays);
-
     points.push({
       date,
-      value: Math.max(0, Math.round(value * 10) / 10),
+      value: Math.max(0, Math.round((totalEffective - step * i) * 10) / 10),
     });
   }
 
