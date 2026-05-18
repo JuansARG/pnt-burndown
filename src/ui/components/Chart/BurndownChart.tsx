@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Sprint } from '../../../domain/entities/Sprint';
 import type { IdealPoint } from '../../../domain/usecases/calculateIdealLine';
+import { effectiveTotalPoints } from '../../../domain/usecases/effectiveTotalPoints';
 import './BurndownChart.css';
 
 export interface BurndownChartProps {
@@ -16,7 +17,7 @@ interface TooltipData {
   dayIndex: number;
   value: number;
   note?: string;
-  type: 'actual' | 'ideal';
+  type: 'actual' | 'ideal' | 'scope';
 }
 
 const W = 800;
@@ -30,20 +31,16 @@ function dateToLabel(date: string): string {
   return `${parseInt(m)}/${parseInt(d)}`;
 }
 
-function dateToDay(date: string, startDate: string): string {
-  const [sy, sm, sd] = startDate.split('-').map(Number);
-  const [dy, dm, dd] = date.split('-').map(Number);
-  const start = Date.UTC(sy, sm - 1, sd);
-  const current = Date.UTC(dy, dm - 1, dd);
-  const n = Math.round((current - start) / 86_400_000) + 1;
-  return `Day ${n}`;
-}
 
 export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProps) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
   const totalDays = idealLine.length > 1 ? idealLine.length - 1 : 1;
-  const totalPoints = sprint.totalPoints;
+  const maxRemaining = sprint.entries.length > 0
+    ? Math.max(...sprint.entries.map(e => e.remaining))
+    : sprint.totalPoints;
+  const effectiveAtEnd = effectiveTotalPoints(sprint, sprint.endDate);
+  const yMax = Math.max(effectiveAtEnd, maxRemaining, sprint.totalPoints);
 
   // Map date → x index in idealLine
   const dateIndexMap = new Map(idealLine.map((p, i) => [p.date, i]));
@@ -53,7 +50,7 @@ export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProp
   }
 
   function yCoord(value: number): number {
-    return PAD.top + ((totalPoints - value) / totalPoints) * CHART_H;
+    return PAD.top + ((yMax - value) / yMax) * CHART_H;
   }
 
   // Build ideal polyline points
@@ -78,8 +75,8 @@ export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProp
 
   const actualPoints = allActualPairs.map(({ e, i }) => `${xCoord(i)},${yCoord(e.remaining)}`).join(' ');
 
-  // Grid lines — horizontal, every 25% of totalPoints
-  const gridValues = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(f * totalPoints));
+  // Grid lines — horizontal, every 25% of yMax
+  const gridValues = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(f * yMax));
 
   // X axis labels — show first, last, and every ~4 days
   const xLabels = idealLine.filter((_, i) => {
@@ -240,6 +237,46 @@ export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProp
           </g>
         ))}
 
+        {/* Scope change markers */}
+        {(sprint.scopeChanges ?? []).map(sc => {
+          const i = dateIndexMap.get(sc.date);
+          if (i === undefined) return null;
+          const x = xCoord(i);
+          return (
+            <g key={`scope-${sc.date}`}>
+              <line
+                className="line-scope"
+                x1={x}
+                x2={x}
+                y1={PAD.top}
+                y2={PAD.top + CHART_H}
+              />
+              <circle
+                cx={x}
+                cy={PAD.top + CHART_H / 2}
+                r={14}
+                fill="transparent"
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={evt => {
+                  const svg = (evt.target as SVGElement).closest('svg')!;
+                  const rect = svg.getBoundingClientRect();
+                  const scaleX = W / rect.width;
+                  const scaleY = H / rect.height;
+                  setTooltip({
+                    x: (evt.clientX - rect.left) * scaleX,
+                    y: (evt.clientY - rect.top) * scaleY,
+                    date: sc.date,
+                    dayIndex: i,
+                    value: sc.delta,
+                    note: sc.note,
+                    type: 'scope',
+                  });
+                }}
+              />
+            </g>
+          );
+        })}
+
         {/* Tooltip */}
         {tooltip && (() => {
           const pw = 220;
@@ -279,8 +316,14 @@ export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProp
                 fill="var(--color-text-secondary)"
               >
                 {axisMode === 'day' ? `Day ${tooltip.dayIndex + 1}` : dateToLabel(tooltip.date)}
-                <tspan dx="8" fill={tooltip.type === 'actual' ? 'var(--color-signal)' : 'var(--color-ideal)'}>
-                  {tooltip.type === 'actual' ? '● actual' : '◌ ideal'}
+                <tspan dx="8" fill={
+                  tooltip.type === 'actual' ? 'var(--color-signal)' :
+                  tooltip.type === 'scope' ? 'var(--color-scope)' :
+                  'var(--color-ideal)'
+                }>
+                  {tooltip.type === 'actual' ? '● actual' :
+                   tooltip.type === 'scope' ? '◆ scope' :
+                   '◌ ideal'}
                 </tspan>
               </text>
               <text
@@ -292,7 +335,7 @@ export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProp
                 fontWeight="600"
                 fill="var(--color-text-primary)"
               >
-                {tooltip.value} pts
+                {tooltip.type === 'scope' && tooltip.value > 0 ? '+' : ''}{tooltip.value} pts
               </text>
               {noteLines.map((line, i) => (
                 <text
@@ -324,6 +367,14 @@ export function BurndownChart({ sprint, idealLine, axisMode }: BurndownChartProp
           <span className="legend-dot" />
           actual
         </span>
+        {(sprint.scopeChanges ?? []).length > 0 && (
+          <span className="legend-item legend-scope">
+            <svg width="20" height="2" style={{ marginRight: 6 }}>
+              <line x1="0" y1="1" x2="20" y2="1" stroke="var(--color-scope)" strokeWidth="1.5" strokeDasharray="3 2" />
+            </svg>
+            scope change
+          </span>
+        )}
       </div>
     </div>
   );

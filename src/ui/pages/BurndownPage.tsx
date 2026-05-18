@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useBurndown } from '../../application/useBurndown';
-import type { Sprint } from '../../domain/entities/Sprint';
+import type { Sprint, ScopeChange } from '../../domain/entities/Sprint';
+import { effectiveTotalPoints } from '../../domain/usecases/effectiveTotalPoints';
 import { getWorkingDayEndDate, getWorkingDays } from '../../domain/usecases/workingDays';
 import { BurndownChart } from '../components/Chart/BurndownChart';
 import { DayForm } from '../components/DayForm/DayForm';
@@ -19,7 +20,7 @@ interface EditingEntry {
 }
 
 export function BurndownPage() {
-  const { sprint, idealLine, isSharing, shareUrl, setupSprint, logDay, deleteEntry, updateEntryDate, updateNote, share, reset } =
+  const { sprint, idealLine, isSharing, shareUrl, setupSprint, logDay, deleteEntry, updateEntryDate, updateNote, logScopeChange, deleteScopeChange, share, reset } =
     useBurndown();
 
   const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
@@ -43,8 +44,9 @@ export function BurndownPage() {
   const lastEntry = sprint.entries.length
     ? [...sprint.entries].sort((a, b) => b.date.localeCompare(a.date))[0]
     : null;
-  const progress = lastEntry
-    ? Math.round(((sprint.totalPoints - lastEntry.remaining) / sprint.totalPoints) * 100)
+  const effectiveTotal = effectiveTotalPoints(sprint, todayISO());
+  const progress = lastEntry && effectiveTotal > 0
+    ? Math.min(100, Math.round(((effectiveTotal - lastEntry.remaining) / effectiveTotal) * 100))
     : 0;
 
   return (
@@ -68,7 +70,7 @@ export function BurndownPage() {
       <div className="stats-row">
         <div className="stats-card stats-card--total">
           <span className="stats-card__label">Total</span>
-          <span className="stats-card__value">{sprint.totalPoints} pts</span>
+          <span className="stats-card__value">{effectiveTotal} pts</span>
         </div>
         <div className="stats-card stats-card--remaining">
           <span className="stats-card__label">Remaining</span>
@@ -109,114 +111,149 @@ export function BurndownPage() {
           sprintEndDate={sprint.endDate}
           totalPoints={sprint.totalPoints}
           entries={sprint.entries}
+          scopeChanges={sprint.scopeChanges}
           onSubmit={logDay}
+          onScopeChange={logScopeChange}
         />
 
         {/* Entries table */}
-        {sprint.entries.length > 0 && (
+        {(sprint.entries.length > 0 || (sprint.scopeChanges ?? []).length > 0) && (
           <div className="entries-panel">
             <div className="entries-panel__header">
               <span className="entries-panel__label-tag">ENTRIES</span>
               <span className="entries-count">{sprint.entries.length} days logged</span>
             </div>
             <div className="entries-list">
-              {[...sprint.entries]
+              {[
+                ...sprint.entries.map(e => ({ type: 'entry' as const, date: e.date, data: e })),
+                ...(sprint.scopeChanges ?? []).map(sc => ({ type: 'scope' as const, date: sc.date, data: sc })),
+              ]
                 .sort((a, b) => b.date.localeCompare(a.date))
-                .map(entry => (
-                  <div key={entry.date} className="entry-row">
-                    {/* DATE — editable */}
-                    {editingDateFor === entry.date ? (
-                      <input
-                        className="entry-row__date-input"
-                        type="date"
-                        defaultValue={entry.date}
-                        min={sprint.startDate}
-                        max={sprint.endDate}
-                        autoFocus
-                        onChange={e => {
-                          const newDate = e.target.value;
-                          if (!newDate) return;
-                          const ok = updateEntryDate(entry.date, newDate);
-                          if (!ok) {
-                            setDateError(`Ya existe una entry para ${newDate}`);
-                            return;
-                          }
-                          setDateError(null);
-                          setEditingDateFor(null);
-                          if (editingEntry?.date === entry.date) {
-                            setEditingEntry({ date: newDate, value: String(entry.remaining) });
-                          }
-                        }}
-                        onKeyDown={e => {
-                          if (e.key === 'Escape') setEditingDateFor(null);
-                        }}
-                        onBlur={() => { setEditingDateFor(null); setDateError(null); }}
-                      />
-                    ) : (
-                      <button
-                        className="entry-row__date entry-row__date--btn"
-                        title="Click to edit date"
-                        onClick={() => setEditingDateFor(entry.date)}
-                      >
-                        {entry.date}
-                        <span className="entry-row__edit-icon" aria-hidden="true">✎</span>
-                      </button>
-                    )}
-
-                    {editingEntry?.date === entry.date ? (
-                      <input
-                        className="entry-row__points-input"
-                        type="number"
-                        min={0}
-                        autoFocus
-                        value={editingEntry.value}
-                        onChange={e => setEditingEntry({ date: entry.date, value: e.target.value })}
-                        onBlur={() => {
-                          const parsed = Number(editingEntry.value);
-                          if (editingEntry.value !== '' && !isNaN(parsed) && parsed >= 0) {
-                            logDay({ ...entry, remaining: parsed });
-                          }
-                          setEditingEntry(null);
-                        }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') setEditingEntry(null);
-                        }}
-                      />
-                    ) : (
-                      <button
-                        className="entry-row__points"
-                        title="Click to edit"
-                        onClick={() => setEditingEntry({ date: entry.date, value: String(entry.remaining) })}
-                      >
-                        {entry.remaining} pts
-                        <span className="entry-row__edit-icon" aria-hidden="true">✎</span>
-                      </button>
-                    )}
-                    <button
-                      className="entry-row__note-btn"
-                      onClick={() => setNoteTarget({ date: entry.date, note: entry.note })}
-                      title={entry.note ? 'Edit note' : 'Add note'}
-                    >
-                      {entry.note ? (
-                        <span className="entry-row__note-preview" title={entry.note}>
-                          📝 {entry.note.slice(0, 40)}{entry.note.length > 40 ? '…' : ''}
+                .map(item => {
+                  if (item.type === 'scope') {
+                    const sc = item.data as ScopeChange;
+                    return (
+                      <div key={`scope-${sc.date}`} className="entry-row entry-row--scope">
+                        <span className="entry-row__date">{sc.date}</span>
+                        <span className="entry-row__points entry-row__points--scope">
+                          {sc.delta > 0 ? '+' : ''}{sc.delta} pts
                         </span>
+                        {sc.note ? (
+                          <span className="entry-row__note-preview" title={sc.note}>
+                            📝 {sc.note.slice(0, 40)}{sc.note.length > 40 ? '…' : ''}
+                          </span>
+                        ) : (
+                          <span className="entry-row__add-note" />
+                        )}
+                        <button
+                          className="entry-row__delete-btn"
+                          title="Delete scope change"
+                          onClick={() => deleteScopeChange(sc.date)}
+                          aria-label={`Delete scope change ${sc.date}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  const entry = item.data as Sprint['entries'][0];
+                  return (
+                    <div key={entry.date} className="entry-row">
+                      {/* DATE — editable */}
+                      {editingDateFor === entry.date ? (
+                        <input
+                          className="entry-row__date-input"
+                          type="date"
+                          defaultValue={entry.date}
+                          min={sprint.startDate}
+                          max={sprint.endDate}
+                          autoFocus
+                          onChange={e => {
+                            const newDate = e.target.value;
+                            if (!newDate) return;
+                            const ok = updateEntryDate(entry.date, newDate);
+                            if (!ok) {
+                              setDateError(`Ya existe una entry para ${newDate}`);
+                              return;
+                            }
+                            setDateError(null);
+                            setEditingDateFor(null);
+                            if (editingEntry?.date === entry.date) {
+                              setEditingEntry({ date: newDate, value: String(entry.remaining) });
+                            }
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') setEditingDateFor(null);
+                          }}
+                          onBlur={() => { setEditingDateFor(null); setDateError(null); }}
+                        />
                       ) : (
-                        <span className="entry-row__add-note">+ note</span>
+                        <button
+                          className="entry-row__date entry-row__date--btn"
+                          title="Click to edit date"
+                          onClick={() => setEditingDateFor(entry.date)}
+                        >
+                          {entry.date}
+                          <span className="entry-row__edit-icon" aria-hidden="true">✎</span>
+                        </button>
                       )}
-                    </button>
-                    {/* DELETE */}
-                    <button
-                      className="entry-row__delete-btn"
-                      title="Delete entry"
-                      onClick={() => deleteEntry(entry.date)}
-                      aria-label={`Delete entry ${entry.date}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+
+                      {editingEntry?.date === entry.date ? (
+                        <input
+                          className="entry-row__points-input"
+                          type="number"
+                          min={0}
+                          autoFocus
+                          value={editingEntry.value}
+                          onChange={e => setEditingEntry({ date: entry.date, value: e.target.value })}
+                          onBlur={() => {
+                            const parsed = Number(editingEntry.value);
+                            if (editingEntry.value !== '' && !isNaN(parsed) && parsed >= 0) {
+                              logDay({ ...entry, remaining: parsed });
+                            }
+                            setEditingEntry(null);
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                            if (e.key === 'Escape') setEditingEntry(null);
+                          }}
+                        />
+                      ) : (
+                        <button
+                          className="entry-row__points"
+                          title="Click to edit"
+                          onClick={() => setEditingEntry({ date: entry.date, value: String(entry.remaining) })}
+                        >
+                          {entry.remaining} pts
+                          <span className="entry-row__edit-icon" aria-hidden="true">✎</span>
+                        </button>
+                      )}
+                      <button
+                        className="entry-row__note-btn"
+                        onClick={() => setNoteTarget({ date: entry.date, note: entry.note })}
+                        title={entry.note ? 'Edit note' : 'Add note'}
+                      >
+                        {entry.note ? (
+                          <span className="entry-row__note-preview" title={entry.note}>
+                            📝 {entry.note.slice(0, 40)}{entry.note.length > 40 ? '…' : ''}
+                          </span>
+                        ) : (
+                          <span className="entry-row__add-note">+ note</span>
+                        )}
+                      </button>
+                      {/* DELETE */}
+                      <button
+                        className="entry-row__delete-btn"
+                        title="Delete entry"
+                        onClick={() => deleteEntry(entry.date)}
+                        aria-label={`Delete entry ${entry.date}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
             </div>
             {dateError && (
               <p className="entries-panel__error">{dateError}</p>
@@ -260,13 +297,6 @@ export function BurndownPage() {
   );
 }
 
-/* ─── Sprint Setup Form ───────────────────────────────────────────────────── */
-
-interface SprintSetupFormProps {
-  onSetup: (sprint: Sprint) => void;
-  initial?: Sprint;
-}
-
 function todayISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -275,6 +305,13 @@ function todayISO(): string {
 function offsetDate(days: number): string {
   const d = new Date(Date.now() + days * 86400000);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* ─── Sprint Setup Form ───────────────────────────────────────────────────── */
+
+interface SprintSetupFormProps {
+  onSetup: (sprint: Sprint) => void;
+  initial?: Sprint;
 }
 
 function SprintSetupForm({ onSetup, initial }: SprintSetupFormProps) {

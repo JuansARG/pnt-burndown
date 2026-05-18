@@ -278,6 +278,18 @@
   color: #FBB429;
 }
 
+.entry-row--scope {
+  background: var(--color-scope-dim);
+}
+
+.entry-row--scope:hover {
+  background: rgba(167, 139, 250, 0.22);
+}
+
+.entry-row__points--scope {
+  color: var(--color-scope);
+}
+
 .entry-row__edit-icon {
   font-size: 10px;
   color: var(--color-text-muted);

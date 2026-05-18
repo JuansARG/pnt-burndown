@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import type { Sprint, DayEntry } from '../domain/entities/Sprint';
+import type { Sprint, DayEntry, ScopeChange } from '../domain/entities/Sprint';
 import { calculateIdealLine, type IdealPoint } from '../domain/usecases/calculateIdealLine';
+import { effectiveTotalPoints } from '../domain/usecases/effectiveTotalPoints';
 import { localStorageAdapter } from '../infrastructure/storage/localStorageAdapter';
 import { urlStateAdapter } from '../infrastructure/url/urlStateAdapter';
 
 export interface BurndownState {
   sprint: Sprint | null;
   idealLine: IdealPoint[];
+  effectiveTotal: number;
   isSharing: boolean;
   shareUrl: string;
 }
@@ -17,6 +19,8 @@ export interface BurndownActions {
   deleteEntry(date: string): void;
   updateEntryDate(oldDate: string, newDate: string): boolean; // false = date already taken
   updateNote(date: string, note: string): void;
+  logScopeChange(change: ScopeChange): void;
+  deleteScopeChange(date: string): void;
   share(): void;
   reset(): void;
 }
@@ -26,13 +30,23 @@ function computeIdealLine(sprint: Sprint | null): IdealPoint[] {
   return calculateIdealLine(sprint);
 }
 
+function computeEffectiveTotal(sprint: Sprint | null): number {
+  if (!sprint) return 0;
+  const latestEntry = sprint.entries.length
+    ? [...sprint.entries].sort((a, b) => b.date.localeCompare(a.date))[0]
+    : null;
+  return effectiveTotalPoints(sprint, latestEntry?.date ?? sprint.startDate);
+}
+
 export function useBurndown(): BurndownState & BurndownActions {
   const [sprint, setSprint] = useState<Sprint | null>(null);
   const [idealLine, setIdealLine] = useState<IdealPoint[]>([]);
+  const [effectiveTotal, setEffectiveTotal] = useState(0);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
 
   // On mount: URL hash → localStorage → null
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     let loaded = urlStateAdapter.read();
     if (loaded) {
@@ -44,12 +58,15 @@ export function useBurndown(): BurndownState & BurndownActions {
     if (loaded) {
       setSprint(loaded);
       setIdealLine(computeIdealLine(loaded));
+      setEffectiveTotal(computeEffectiveTotal(loaded));
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function persistAndUpdate(next: Sprint) {
     setSprint(next);
     setIdealLine(computeIdealLine(next));
+    setEffectiveTotal(computeEffectiveTotal(next));
     localStorageAdapter.save(next);
     // If share panel is open, keep URL in sync
     if (isSharing) {
@@ -98,6 +115,24 @@ export function useBurndown(): BurndownState & BurndownActions {
     persistAndUpdate({ ...sprint, entries: nextEntries });
   }
 
+  function logScopeChange(change: ScopeChange): void {
+    if (!sprint) return;
+    const existing = (sprint.scopeChanges ?? []).findIndex(sc => sc.date === change.date);
+    const nextScopeChanges =
+      existing >= 0
+        ? (sprint.scopeChanges ?? []).map((sc, i) => (i === existing ? change : sc))
+        : [...(sprint.scopeChanges ?? []), change].sort((a, b) => a.date.localeCompare(b.date));
+    persistAndUpdate({ ...sprint, scopeChanges: nextScopeChanges });
+  }
+
+  function deleteScopeChange(date: string): void {
+    if (!sprint) return;
+    persistAndUpdate({
+      ...sprint,
+      scopeChanges: (sprint.scopeChanges ?? []).filter(sc => sc.date !== date),
+    });
+  }
+
   function share(): void {
     if (!sprint) return;
     urlStateAdapter.write(sprint);
@@ -118,6 +153,7 @@ export function useBurndown(): BurndownState & BurndownActions {
   return {
     sprint,
     idealLine,
+    effectiveTotal,
     isSharing,
     shareUrl,
     setupSprint,
@@ -125,6 +161,8 @@ export function useBurndown(): BurndownState & BurndownActions {
     deleteEntry,
     updateEntryDate,
     updateNote,
+    logScopeChange,
+    deleteScopeChange,
     share,
     reset,
   };

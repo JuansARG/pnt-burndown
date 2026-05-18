@@ -31,6 +31,10 @@
   /* Success */
   --color-success:      #22C55E;
 
+  /* Scope change: violet — distinct from amber (actual) and teal (ideal) */
+  --color-scope:       #A78BFA;
+  --color-scope-dim:   rgba(167, 139, 250, 0.15);
+
   /* Text */
   --color-text-primary:   #E8EAF0;   /* headings, primary labels */
   --color-text-secondary: #7A8499;   /* captions, meta */

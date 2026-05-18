@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import type { DayEntry, Sprint } from '../../../domain/entities/Sprint';
+import type { DayEntry, Sprint, ScopeChange } from '../../../domain/entities/Sprint';
 import './DayForm.css';
 
 interface DayFormProps {
@@ -7,7 +7,9 @@ interface DayFormProps {
   sprintEndDate: string;
   totalPoints: number;
   entries: Sprint['entries'];
+  scopeChanges?: ScopeChange[];
   onSubmit: (entry: DayEntry) => void;
+  onScopeChange?: (change: ScopeChange) => void;
 }
 
 function todayISO(): string {
@@ -15,11 +17,12 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, onSubmit }: DayFormProps) {
+export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, scopeChanges, onSubmit, onScopeChange }: DayFormProps) {
   const [date, setDate] = useState(todayISO());
   const [remaining, setRemaining] = useState('');
   const [burned, setBurned] = useState('');
-  const [mode, setMode] = useState<'remaining' | 'burned'>('remaining');
+  const [delta, setDelta] = useState('');
+  const [mode, setMode] = useState<'remaining' | 'burned' | 'scope'>('remaining');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -28,7 +31,13 @@ export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, 
     const sorted = [...entries]
       .filter(e => e.date < forDate)
       .sort((a, b) => b.date.localeCompare(a.date));
-    return sorted.length > 0 ? sorted[0].remaining : totalPoints;
+    const lastEntry = sorted[0];
+    const baseRemaining = lastEntry ? lastEntry.remaining : totalPoints;
+    const lastEntryDate = lastEntry?.date ?? '';
+    const extraScope = (scopeChanges ?? [])
+      .filter(sc => sc.date <= forDate && sc.date > lastEntryDate)
+      .reduce((sum, sc) => sum + sc.delta, 0);
+    return baseRemaining + extraScope;
   }
 
   function validate(): string | null {
@@ -39,12 +48,18 @@ export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, 
       const rem = Number(remaining);
       if (remaining === '' || isNaN(rem)) return 'Remaining points is required';
       if (rem < 0) return 'Remaining points cannot be negative';
-    } else {
+    } else if (mode === 'burned') {
       const b = Number(burned);
       if (burned === '' || isNaN(b)) return 'Burned points is required';
       if (b < 0) return 'Burned points cannot be negative';
       const rem = getPrevRemaining(date) - b;
       if (rem < 0) return 'Burned points exceed remaining points';
+    } else {
+      const d = Number(delta);
+      if (delta === '' || isNaN(d)) return 'Scope delta is required';
+      if (d === 0) return 'Scope delta cannot be zero';
+      const existing = (scopeChanges ?? []).some(sc => sc.date === date);
+      if (existing) return `A scope change already exists for ${date}`;
     }
     if (note.length > 280) return 'Note exceeds 280 characters';
     return null;
@@ -55,6 +70,22 @@ export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, 
     const err = validate();
     if (err) { setError(err); return; }
     setError('');
+
+    if (mode === 'scope') {
+      if (!onScopeChange) return;
+      const change: ScopeChange = {
+        date,
+        delta: Number(delta),
+        ...(note.trim() ? { note: note.trim() } : {}),
+      };
+      onScopeChange(change);
+      setDelta('');
+      setNote('');
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 2000);
+      return;
+    }
+
     const computedRemaining = mode === 'remaining'
       ? Number(remaining)
       : getPrevRemaining(date) - Number(burned);
@@ -86,6 +117,11 @@ export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, 
             className={`day-form__mode-btn${mode === 'burned' ? ' day-form__mode-btn--active' : ''}`}
             onClick={() => { setMode('burned'); setError(''); }}
           >Burned</button>
+          <button
+            type="button"
+            className={`day-form__mode-btn${mode === 'scope' ? ' day-form__mode-btn--active' : ''}`}
+            onClick={() => { setMode('scope'); setError(''); }}
+          >Scope</button>
         </div>
       </div>
 
@@ -116,7 +152,7 @@ export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, 
               onChange={e => { setRemaining(e.target.value); setError(''); }}
             />
           </div>
-        ) : (
+        ) : mode === 'burned' ? (
           <div className="field">
             <label className="field__label" htmlFor="df-burned">Burned pts</label>
             <input
@@ -127,6 +163,18 @@ export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, 
               placeholder="0"
               value={burned}
               onChange={e => { setBurned(e.target.value); setError(''); }}
+            />
+          </div>
+        ) : (
+          <div className="field">
+            <label className="field__label" htmlFor="df-delta">Scope delta</label>
+            <input
+              id="df-delta"
+              className="field__input field__input--number"
+              type="number"
+              placeholder="+10 or -5"
+              value={delta}
+              onChange={e => { setDelta(e.target.value); setError(''); }}
             />
           </div>
         )}
@@ -153,7 +201,7 @@ export function DayForm({ sprintStartDate, sprintEndDate, totalPoints, entries, 
         type="submit"
         className={`btn btn--primary ${submitted ? 'btn--success' : ''}`}
       >
-        {submitted ? '✓ Logged' : 'Log entry'}
+        {submitted ? '✓ Logged' : mode === 'scope' ? 'Log scope change' : 'Log entry'}
       </button>
     </form>
   );
