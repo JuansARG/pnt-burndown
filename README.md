@@ -23,7 +23,7 @@ Puntos
 80│╌╌╌╌╌╌ ideal
   │  ───── real
   │
- 0└──────────────── Días
+  0└──────────────── Días
   inicio          fin
 ```
 
@@ -51,7 +51,7 @@ El formulario tiene un toggle para elegir cómo definir la duración del sprint:
 | **Start date** | Fecha de inicio del sprint |
 | **End date** | Fecha de fin del sprint |
 
-**Duration** — ingresás días hábiles y la app calcula la fecha de fin automáticamente:
+**Duration** — ingresás días hábiles y la app calcula la fecha de fin automáticamente, salteando feriados:
 
 | Campo | Descripción |
 |-------|-------------|
@@ -67,58 +67,59 @@ Una vez configurado, la app calcula automáticamente la línea ideal y ya podés
 
 ### 2. Registrar el progreso diario
 
-Cada día (o cuando quieras), cargás cuántos puntos **quedan pendientes**:
+Cada día (o cuando quieras), cargás datos desde el formulario de la izquierda. Hay **tres modos** de registro:
 
-1. Completá la fecha y los puntos restantes en el formulario de la izquierda
-2. Opcionalmente, escribí una **nota** para explicar qué pasó ese día  
-   *(¿Se bloquearon stories? ¿Llegó scope nuevo? Anotalo acá)*
-3. Hacé click en **Log day**
+#### Modo **Remaining** (default)
+Ingresás cuántos puntos **quedan pendientes** al final del día.
 
-La línea real del chart se actualiza al instante.
+#### Modo **Burned**
+Ingresás cuántos puntos **se quemaron** ese día. La app calcula automáticamente los remaining restando del último valor conocido.
+
+#### Modo **Scope change**
+Registrás cambios de scope: sumás o restás puntos al total del sprint. Útil cuando llegan stories nuevas o se sacan del sprint.
+
+| Campo | Descripción |
+|-------|-------------|
+| **Date** | Fecha del registro |
+| **Remaining / Burned / Delta** | Según el modo activo |
+| **Note** (opcional) | Contexto: ¿por qué se bloquearon? ¿llegó scope nuevo? Máximo 280 caracteres |
 
 > **Tip:** Si cargás el mismo día dos veces, el valor se sobreescribe — no se duplica.
 
 ---
 
-### 3. Editar una entry existente
+### 3. Ver y editar entries
 
-¿Cargaste mal los puntos? No hay problema. En la tabla de entries (abajo a la derecha):
+En la tabla de entries (abajo a la derecha) se listan todos los días logueados y los scope changes, ordenados por fecha:
 
-1. Hacé click en el valor de puntos de la entry que querés corregir (ej: `45 pts ✎`)
-2. Se convierte en un input — escribí el valor correcto
-3. Presioná **Enter** o hacé click fuera para guardar  
-   *(Escape cancela la edición)*
+- **Editar fecha**: Hacé click en la fecha de una entry (aparece `✎`) y seleccioná otra fecha del calendario
+- **Editar puntos**: Hacé click en los puntos de una entry (aparece `✎`), escribí el valor correcto y presioná **Enter** o click fuera
+- **Agregar/editar nota**: Hacé click en `+ note` o en el texto de la nota existente. Se abre un modal de edición
+- **Eliminar entry o scope change**: Hacé click en `×` al final de la fila
 
-El chart se actualiza inmediatamente.
-
----
-
-### 4. Agregar o editar notas
-
-Las notas te permiten contextualizar anomalías en el chart. Por ejemplo: *"Se agregaron 8 pts de scope nuevo"* o *"Bloqueados por dependencia externa"*.
-
-Para agregar o editar una nota:
-1. En la tabla de entries (abajo a la derecha), buscá el día
-2. Hacé click en **+ note** (o en el texto de la nota si ya tiene una)
-3. Se abre el modal de edición — escribí tu nota (máximo 280 caracteres)
-4. Guardá con **Save note**
-
-Las notas aparecen en el tooltip del chart al hacer hover sobre ese punto.
+El chart se actualiza inmediatamente con cualquier cambio.
 
 ---
 
-### 5. Compartir el estado con tu equipo
+### 4. Compartir el estado con tu equipo
 
 La app no tiene backend — el estado completo del sprint se **codifica en la URL**. Esto significa que podés compartir exactamente lo que estás viendo con un link.
 
-1. Hacé click en el botón **Share**
-2. La URL se actualiza automáticamente con el estado actual
-3. Copiá el link y mandáselo a tu compañero
+1. Hacé click en el botón **Share snapshot**
+2. Se genera una URL compacta con el estado actual
+3. Copiá el link y compartilo
 4. Tu compañero abre el link → ve exactamente tu sprint con todos los datos
 
-> **Importante:** cada vez que actualizás el sprint (nuevo entry, nueva nota), el link cambia. Es un **snapshot** del estado actual, no un link vivo. El flujo de trabajo típico es:
-> 1. Vos cargás el día → compartís el nuevo link
-> 2. Tu compañero abre el link → agrega su nota → te manda el nuevo link
+> **Importante:** cada vez que actualizás el sprint, el link cambia. Es un **snapshot** del estado actual, no un link vivo. El flujo típico es: vos cargás el día → compartís el nuevo link → tu compañero abre → agrega su nota → te manda el nuevo link.
+
+---
+
+### 5. Alternar eje del chart
+
+Arriba del chart hay un toggle **Date / Day** para cambiar cómo se muestra el eje X:
+
+- **Date**: muestra fechas reales (`5/12`, `5/13`...) con saltos visibles para fines de semana y feriados
+- **Day**: muestra días consecutivos (`Day 1`, `Day 2`...) sin saltos, útil para ver el ritmo independientemente de los fines de semana
 
 ---
 
@@ -191,6 +192,12 @@ npm run deploy
 
 Esto construye el proyecto y lo publica automáticamente en la rama `gh-pages`.
 
+También podés usar `npm run publish:app` para commitear, pushear y deployar todo de una:
+
+```bash
+npm run publish:app
+```
+
 ### Preview del build
 
 ```bash
@@ -209,7 +216,7 @@ npm run preview
 | Chart | SVG puro (sin librerías) |
 | Persistencia | localStorage + URL hash |
 | Backend | Ninguno |
-| Dependencias de runtime | Solo `react` + `react-dom` |
+| Dependencias de runtime | `react`, `react-dom`, `lz-string` |
 
 ---
 
@@ -220,14 +227,33 @@ El proyecto sigue una arquitectura hexagonal (Clean Architecture):
 ```
 src/
 ├── domain/          # Lógica de negocio pura, sin React
-│   ├── entities/    # Sprint, DayEntry
-│   └── usecases/    # calculateIdealLine, serializeState
+│   ├── entities/    # Sprint, DayEntry, ScopeChange
+│   └── usecases/    # calculateIdealLine, serializeState, workingDays
 ├── infrastructure/  # Adaptadores al mundo exterior
 │   ├── storage/     # localStorage
 │   └── url/         # URL hash
 ├── application/     # Orquestación (useBurndown hook)
 └── ui/              # Componentes React, estilos
 ```
+
+---
+
+## Historial de cambios
+
+Este es un registro de las decisiones y features que fuimos agregando. No es un changelog de versiones, es un diario de por qué existe cada feature.
+
+| Fecha | Cambio | Motivación |
+|-------|--------|------------|
+| Mayo 2026 | **Serialización compacta de URLs** | Los links compartidos eran demasiado largos (~1000 caracteres). Se agregó `lz-string` con arrays posicionales para reducirlos a ~200 caracteres sin perder backward compat. |
+| Mayo 2026 | **Scope changes** | Los sprints reales cambian de scope. Agregamos tracking de deltas de scope (positivo/negativo) con fecha y nota. |
+| Mayo 2026 | **Modo Duration + Working days** | Configurar sprints por "10 días hábiles" es más natural que calcular fechas a mano. La app calcula automáticamente la fecha de fin, respetando feriados. |
+| Mayo 2026 | **Holidays** | Para equipos que trabajan en países con feriados variables, agregamos la posibilidad de definir feriados que se saltean al computar días hábiles. |
+| Mayo 2026 | **Burned points mode** | A veces es más natural decir "hoy quemamos 15 puntos" que "quedan 67 puntos". Agregamos un toggle para registrar burned en lugar de remaining. |
+| Mayo 2026 | **Axis toggle (Date / Day)** | Ver el eje como "día 1, día 2..." en lugar de fechas ayuda a visualizar el ritmo independientemente de fines de semana. |
+| Mayo 2026 | **Inline editing** | Editar fecha y puntos directamente desde la tabla de entries, sin tener que re-cargar el formulario lateral. |
+| Mayo 2026 | **Notas con modal** | Las notas permiten contextualizar anomalías en el chart. Agregamos un modal dedicado para editar notas de hasta 280 caracteres. |
+| Mayo 2026 | **Validación de fechas duplicadas** | Evitar que al editar la fecha de una entry se pise otra existente, con feedback visual de error. |
+| Abril 2026 | **Setup inicial + deploy** | Vite + React 19 + TypeScript + GitHub Pages. Arquitectura hexagonal desde el día 0. |
 
 ---
 
